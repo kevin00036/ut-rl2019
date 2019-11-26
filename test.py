@@ -16,7 +16,7 @@ def main():
 
     print(env.observation_space, env.action_space)
 
-    for ep in range(1000):
+    for ep in range(2000):
         print(ep)
         agent.run_episode()
 
