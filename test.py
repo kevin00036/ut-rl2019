@@ -2,7 +2,8 @@ import gym
 import numpy as np
 import torch
 
-from dqn import DQNAgent
+from uvfa import UVFAgent
+from rl import StandardRLAgent
 
 
 def main():
@@ -12,11 +13,15 @@ def main():
     env = gym.make('MountainCar-v0')
     # env = gym.make('HalfCheetah-v3')
 
-    agent = DQNAgent(env)
+    # agent = UVFAgent(env)
+    agent = StandardRLAgent(env)
 
     print(env.observation_space, env.action_space)
 
-    for ep in range(2000):
+    num_episode = 2000
+    # num_episode = 0
+
+    for ep in range(num_episode):
         print(ep)
         agent.run_episode()
 
