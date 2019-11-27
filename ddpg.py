@@ -8,25 +8,26 @@ from replay_buffer import ReplayBuffer
 from stats import Stats
 
 class DDPGCriticNet(nn.Module):
-    def __init__(self, obs_dim, act_dim):
+    def __init__(self, obs_dim, act_dim, hidden_dims=[400, 300]):
         super().__init__()
-        self.fc1 = nn.Linear(obs_dim*2 + act_dim, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, 1)
+        self.fc1 = nn.Linear(obs_dim*2 + act_dim, hidden_dims[0])
+        self.fc2 = nn.Linear(hidden_dims[0] + act_dim, hidden_dims[1])
+        self.fc3 = nn.Linear(hidden_dims[1], 1)
 
     def forward(self, s, g, a):
         sg = torch.cat([s, g-s, a], dim=-1)
         x = F.relu(self.fc1(sg))
-        x = F.relu(self.fc2(x))
+        xa = torch.cat([x, a], dim=-1)
+        x = F.relu(self.fc2(xa))
         x = self.fc3(x)
         return x
 
 class DDPGActorNet(nn.Module):
-    def __init__(self, obs_dim, act_dim):
+    def __init__(self, obs_dim, act_dim, hidden_dims=[400, 300]):
         super().__init__()
-        self.fc1 = nn.Linear(obs_dim*2, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, act_dim)
+        self.fc1 = nn.Linear(obs_dim*2, hidden_dims[0])
+        self.fc2 = nn.Linear(hidden_dims[0], hidden_dims[1])
+        self.fc3 = nn.Linear(hidden_dims[1], act_dim)
 
     def forward(self, s, g):
         sg = torch.cat([s, g-s], dim=-1)
@@ -36,22 +37,23 @@ class DDPGActorNet(nn.Module):
         return x
 
 class DDPGAlgo:
-    def __init__(self, obs_dim, act_dim, gamma, lr=1e-3):
+    def __init__(self, obs_dim, act_dim, gamma, lr=1e-3, device='cpu'):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.gamma = gamma
+        self.device = device
 
         self.target_update_rate = 0.005
         self.actor_update_period = 2
 
         self.update_count = 0
 
-        self.anet = DDPGActorNet(self.obs_dim, self.act_dim)
-        self.anet_target = DDPGActorNet(self.obs_dim, self.act_dim)
-        self.cnet1 = DDPGCriticNet(self.obs_dim, self.act_dim)
-        self.cnet1_target = DDPGCriticNet(self.obs_dim, self.act_dim)
-        self.cnet2 = DDPGCriticNet(self.obs_dim, self.act_dim)
-        self.cnet2_target = DDPGCriticNet(self.obs_dim, self.act_dim)
+        self.anet = DDPGActorNet(self.obs_dim, self.act_dim).to(device)
+        self.anet_target = DDPGActorNet(self.obs_dim, self.act_dim).to(device)
+        self.cnet1 = DDPGCriticNet(self.obs_dim, self.act_dim).to(device)
+        self.cnet1_target = DDPGCriticNet(self.obs_dim, self.act_dim).to(device)
+        self.cnet2 = DDPGCriticNet(self.obs_dim, self.act_dim).to(device)
+        self.cnet2_target = DDPGCriticNet(self.obs_dim, self.act_dim).to(device)
 
         self.optim_a = optim.Adam(self.anet.parameters(), lr=lr)
         self.optim_c = optim.Adam([
@@ -61,13 +63,14 @@ class DDPGAlgo:
 
     def get_action(self, s, g, sigma=0., target=False):
         with torch.no_grad():
-            s = torch.from_numpy(s).float()
-            g = torch.from_numpy(g).float()
+            if not isinstance(s, torch.Tensor):
+                s = torch.from_numpy(s).float().to(self.device)
+                g = torch.from_numpy(g).float().to(self.device)
             if target:
                 amax = self.anet_target(s, g)
             else:
                 amax = self.anet(s, g)
-        amax = amax.numpy()
+        amax = amax.cpu().numpy()
         amax += np.random.normal(size=amax.shape) * sigma
         #TODO: Clip action
 
@@ -79,17 +82,17 @@ class DDPGAlgo:
 
         s, a, r, sp, done, g = batch
 
-        s = torch.from_numpy(s).float()
-        a = torch.from_numpy(a).long()
-        r = torch.from_numpy(r).float()
-        sp = torch.from_numpy(sp).float()
-        done = torch.from_numpy(done).float()
-        g = torch.from_numpy(g).float()
+        s = torch.from_numpy(s).float().to(self.device)
+        a = torch.from_numpy(a).float().to(self.device)
+        r = torch.from_numpy(r).float().to(self.device)
+        sp = torch.from_numpy(sp).float().to(self.device)
+        done = torch.from_numpy(done).float().to(self.device)
+        g = torch.from_numpy(g).float().to(self.device)
 
         # Update Critic
         
         ap = self.get_action(sp, g, target=True, sigma=0.2)
-        ap = torch.from_numpy(ap).float()
+        ap = torch.from_numpy(ap).float().to(self.device)
 
         Qnext = (1 - done) * torch.min(self.cnet1_target(sp, g, ap), self.cnet2_target(sp, g, ap)).detach()
         Qtarget = r + self.gamma * Qnext
@@ -110,11 +113,11 @@ class DDPGAlgo:
 
         # Update Actor
         
-        if self.update_counts % self.actor_update_period == 0:
+        if self.update_count % self.actor_update_period == 0:
             a_pi = self.anet(s, g)
             Q_pi = self.cnet1(s, g, a_pi)
 
-            actor_loss = torch.mean(Q_pi)
+            actor_loss = -torch.mean(Q_pi)
 
             self.optim_a.zero_grad()
             actor_loss.backward()
@@ -127,7 +130,9 @@ class DDPGAlgo:
             # Update Target Networks
             
             for net, net_target in [
-                    (self.anet, self.anet_target), (self.cnet1, self.cnet_target), (self.cnet2, self.cnet2_target)]:
+                    (self.anet, self.anet_target),
+                    (self.cnet1, self.cnet1_target), 
+                    (self.cnet2, self.cnet2_target)]:
                 for p, tp in zip(net.parameters(), net_target.parameters()):
                     tp.data += self.target_update_rate * (p.data - tp.data)
 

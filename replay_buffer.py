@@ -14,6 +14,9 @@ class ReplayBuffer:
     def size(self):
         return len(self.buf_)
 
+    def __len__(self):
+        return self.size()
+
     def sample(self):
         idx = np.random.randint(len(self.buf_))
         return self.buf_[idx]
