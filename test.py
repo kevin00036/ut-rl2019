@@ -6,6 +6,7 @@ from uvfa import UVFAgent
 from rl import StandardRLAgent
 
 device = torch.device('cuda')
+# device = torch.device('cpu')
 
 def main():
     # env = gym.make('Pendulum-v0')

@@ -61,7 +61,7 @@ class DDPGAlgo:
             {'params': self.cnet2.parameters()},
         ], lr=lr)
 
-    def get_action(self, s, g, sigma=0., target=False):
+    def get_action(self, s, g, sigma=0., target=False, clip=False):
         with torch.no_grad():
             if not isinstance(s, torch.Tensor):
                 s = torch.from_numpy(s).float().to(self.device)
@@ -71,8 +71,10 @@ class DDPGAlgo:
             else:
                 amax = self.anet(s, g)
         amax = amax.cpu().numpy()
-        amax += np.random.normal(size=amax.shape) * sigma
-        #TODO: Clip action
+        noise = np.random.normal(size=amax.shape) * sigma
+        if clip:
+            noise = np.clip(noise, -0.5, 0.5)
+        amax += noise
 
         return amax
         
@@ -91,7 +93,7 @@ class DDPGAlgo:
 
         # Update Critic
         
-        ap = self.get_action(sp, g, target=True, sigma=0.2)
+        ap = self.get_action(sp, g, target=True, sigma=0.2, clip=True)
         ap = torch.from_numpy(ap).float().to(self.device)
 
         Qnext = (1 - done) * torch.min(self.cnet1_target(sp, g, ap), self.cnet2_target(sp, g, ap)).detach()

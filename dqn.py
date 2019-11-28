@@ -8,11 +8,11 @@ from replay_buffer import ReplayBuffer
 from stats import Stats
 
 class DQNNet(nn.Module):
-    def __init__(self, obs_dim, num_act):
+    def __init__(self, obs_dim, num_act, hidden_dims=[400, 300]):
         super().__init__()
-        self.fc1 = nn.Linear(obs_dim*2, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, num_act)
+        self.fc1 = nn.Linear(obs_dim*2, hidden_dims[0])
+        self.fc2 = nn.Linear(hidden_dims[0], hidden_dims[1])
+        self.fc3 = nn.Linear(hidden_dims[1], num_act)
 
     def forward(self, s, g):
         sg = torch.cat([s, g-s], dim=-1)

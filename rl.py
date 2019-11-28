@@ -48,12 +48,12 @@ class StandardRLAgent:
         R = 0.
         while not done:
             epilen += 1
-            if self.is_discrete_action:
+            if len(self.replay_buffer) < 10000:
+                a = self.env.action_space.sample()
+            elif self.is_discrete_action:
                 a = self.algo.get_action(s, zero, epsilon=0.05)
             else:
                 a = self.algo.get_action(s, zero, sigma=0.1)
-            if len(self.replay_buffer) < 10000:
-                a = self.env.action_space.sample()
             sp, r, done, _ = self.env.step(a)
             mdone = modify_done(self.env, done)
 
