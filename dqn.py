@@ -23,24 +23,25 @@ class DQNNet(nn.Module):
 
 
 class DQNAlgo:
-    def __init__(self, obs_dim, num_act, gamma, lr=1e-3):
+    def __init__(self, obs_dim, num_act, gamma, lr=1e-3, device='cpu'):
         self.obs_dim = obs_dim
         self.num_act = num_act
         self.gamma = gamma
+        self.device = device
 
         self.target_update_rate = 0.005
 
         self.update_count = 0
 
-        self.net = DQNNet(self.obs_dim, self.num_act)
-        self.net_target = DQNNet(self.obs_dim, self.num_act)
+        self.net = DQNNet(self.obs_dim, self.num_act).to(device)
+        self.net_target = DQNNet(self.obs_dim, self.num_act).to(device)
 
         self.optim = optim.Adam(self.net.parameters(), lr=lr)
 
     def get_action(self, s, g, epsilon=0.):
         with torch.no_grad():
-            s = torch.from_numpy(s).float()
-            g = torch.from_numpy(g).float()
+            s = torch.from_numpy(s).float().to(self.device)
+            g = torch.from_numpy(g).float().to(self.device)
             amax = self.net(s, g).argmax(dim=0)
 
         if np.random.random() < epsilon:
@@ -53,12 +54,12 @@ class DQNAlgo:
 
         s, a, r, sp, done, g = batch
 
-        s = torch.from_numpy(s).float()
-        a = torch.from_numpy(a).long()
-        r = torch.from_numpy(r).float()
-        sp = torch.from_numpy(sp).float()
-        done = torch.from_numpy(done).float()
-        g = torch.from_numpy(g).float()
+        s = torch.from_numpy(s).float().to(self.device)
+        a = torch.from_numpy(a).long().to(self.device)
+        r = torch.from_numpy(r).float().to(self.device)
+        sp = torch.from_numpy(sp).float().to(self.device)
+        done = torch.from_numpy(done).float().to(self.device)
+        g = torch.from_numpy(g).float().to(self.device)
 
         # Update Q networks
 

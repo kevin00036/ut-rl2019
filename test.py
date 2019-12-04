@@ -11,15 +11,15 @@ device = torch.device('cuda')
 def main():
     # env = gym.make('Pendulum-v0')
     # env = gym.make('Acrobot-v1')
-    # env = gym.make('CartPole-v1')
+    env = gym.make('CartPole-v1')
     # env = gym.make('MountainCar-v0')
     # env = gym.make('MountainCarContinuous-v0')
-    env = gym.make('HalfCheetah-v3')
+    # env = gym.make('HalfCheetah-v3')
     # env = gym.make('InvertedPendulum-v2')
     # env = gym.make('Ant-v3')
 
-    # agent = UVFAgent(env)
-    agent = StandardRLAgent(env, device=device)
+    agent = UVFAgent(env, device=device)
+    # agent = StandardRLAgent(env, device=device)
 
     print(env.observation_space, env.action_space)
 
@@ -32,8 +32,12 @@ def main():
 
         if ep % 10 == 0:
             print('==Test==')
-            r, m = agent.test_episode()
-            print(f'Test R: {r:.2f}')
+            tep = 10
+            rs = 0.
+            for i in range(tep):
+                r, m = agent.test_episode()
+                rs += r / tep
+            print(f'Test R: {rs:.2f}')
 
 
         # print(s)

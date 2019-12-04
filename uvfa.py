@@ -7,13 +7,15 @@ import gym
 
 from replay_buffer import ReplayBuffer
 from stats import Stats
+from gymtool import modify_done
 
 from dqn import DQNAlgo
 from ddpg import DDPGAlgo
 
 class UVFAgent:
-    def __init__(self, env):
+    def __init__(self, env, device):
         self.env = env
+        self.device = device
         self.is_discrete_action = isinstance(env.action_space, gym.spaces.discrete.Discrete)
         self.obs_dim = env.observation_space.shape[0]
 
@@ -21,10 +23,10 @@ class UVFAgent:
 
         if self.is_discrete_action:
             self.num_act = env.action_space.n
-            self.algo = DQNAlgo(self.obs_dim, self.num_act, gamma)
+            self.algo = DQNAlgo(self.obs_dim, self.num_act, gamma, device=device)
         else:
             self.act_dim = env.action_space.shape[0]
-            self.algo = DDPGAlgo(self.obs_dim, self.act_dim, gamma)
+            self.algo = DDPGAlgo(self.obs_dim, self.act_dim, gamma, device=device)
 
         self.replay_buffer = ReplayBuffer()
 
@@ -44,8 +46,8 @@ class UVFAgent:
                 action_deltas.append(sp - s)
                 s = sp
 
-        self.std = np.std(states, axis=0)
-        self.astd = np.std(action_deltas, axis=0)
+        self.std = np.std(states, axis=0) + 1e-8
+        self.astd = np.std(action_deltas, axis=0) + 1e-8
 
         print('Std', self.std, 'Action-Std', self.astd)
 
@@ -99,7 +101,7 @@ class UVFAgent:
                 info = self.update_batch()
                 stats.update(info)
 
-        her_prob = 1.0
+        her_prob = 0.5
         rpl_len = 10
         for i in range(epilen):
             s, a, r, sp, done, g = episode[i]
@@ -127,17 +129,18 @@ class UVFAgent:
         while not done:
             # self.env.render()
             cnt += 1
-            if cnt >= 500: break
+            # if cnt >= 500: break
             if self.is_discrete_action:
-                a = self.algo.get_action(s, g, epsilon=0.05)
+                a = self.algo.get_action(s, g, epsilon=0.)
             else:
-                a = self.algo.get_action(s, g, sigma=0.1)
+                a = self.algo.get_action(s, g, sigma=0.)
             sp, extr, done, info = self.env.step(a)
             r = self.goal_reward(sp, g)
             R += r
 
             min_dis = min(min_dis, np.linalg.norm((sp-g)/self.std))
 
+            s = sp
             if r > 0:
                 done = True
 
