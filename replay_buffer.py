@@ -21,8 +21,9 @@ class ReplayBuffer:
         idx = np.random.randint(len(self.buf_))
         return self.buf_[idx]
 
-    def sample_batch(self, batch_size=32):
-        idx = np.random.randint(len(self.buf_), size=batch_size)
+    def sample_batch(self, batch_size=32, replace=True):
+        idx = np.random.choice(range(len(self.buf_)), batch_size, replace=replace)
+        # idx = np.random.randint(len(self.buf_), size=batch_size)
         res = [self.buf_[i] for i in idx]
         res = tuple(np.array(x) for x in zip(*res))
         return res

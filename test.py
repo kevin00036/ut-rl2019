@@ -4,6 +4,7 @@ import torch
 
 from uvfa import UVFAgent
 from rl import StandardRLAgent
+from uvfa_r import UVFAWithRewardAgent
 
 device = torch.device('cuda')
 # device = torch.device('cpu')
@@ -18,8 +19,9 @@ def main():
     # env = gym.make('InvertedPendulum-v2')
     # env = gym.make('Ant-v3')
 
-    agent = UVFAgent(env, device=device)
+    # agent = UVFAgent(env, device=device)
     # agent = StandardRLAgent(env, device=device)
+    agent = UVFAWithRewardAgent(env, device=device)
 
     print(env.observation_space, env.action_space)
 
@@ -38,6 +40,15 @@ def main():
                 r, m = agent.test_episode()
                 rs += r / tep
             print(f'Test R: {rs:.2f}')
+
+        if ep % 20 == 0 and isinstance(agent, UVFAWithRewardAgent):
+            if agent.update_planner():
+                tep = 10
+                rs = 0.
+                for i in range(tep):
+                    r = agent.plan_episode()
+                    rs += r / tep
+                print(f'Plan R: {rs:.2f}')
 
 
         # print(s)
