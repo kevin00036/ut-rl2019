@@ -21,6 +21,7 @@ class UVFAWithRewardAgent:
         self.obs_dim = env.observation_space.shape[0]
 
         gamma = 0.99
+        self.gamma = gamma
 
         if self.is_discrete_action:
             self.num_act = env.action_space.n
@@ -55,7 +56,7 @@ class UVFAWithRewardAgent:
         print('Std', self.std, 'Action-Std', self.astd)
 
     def gen_goal(self, s):
-        g = s + np.random.randn(*s.shape) * self.astd
+        g = s + np.random.randn(*s.shape) * self.astd * np.random.randint(1, 10)
         return g
 
     def goal_reward(self, s, g):
@@ -126,7 +127,17 @@ class UVFAWithRewardAgent:
         g = self.gen_goal(s)
         # g = np.array([0.5, 0.0])
 
-        R = 0
+        ss = torch.from_numpy(s).float().to(self.device).unsqueeze(0)
+        gg = torch.from_numpy(g).float().to(self.device).unsqueeze(0)
+        Q0, R0, _ = self.algo.get_values(ss, gg)
+        Q0 = float(Q0)
+        R0 = float(R0)
+
+        ExtR = 0.
+        DiscExtR = 0.
+        IntR = 0.
+
+        gamma_power = 1.0
 
         min_dis = 1e9
 
@@ -140,8 +151,14 @@ class UVFAWithRewardAgent:
             else:
                 a = self.algo.get_action(s, g, sigma=0.)
             sp, extr, done, info = self.env.step(a)
+            mdone = modify_done(self.env, done)
             r = self.goal_reward(sp, g)
-            R += r
+
+            ExtR += extr
+            DiscExtR += gamma_power * extr
+            IntR += gamma_power * r
+            
+            gamma_power *= self.gamma
 
             min_dis = min(min_dis, np.linalg.norm((sp-g)/self.std))
 
@@ -149,7 +166,15 @@ class UVFAWithRewardAgent:
             if r > 0:
                 done = True
 
-        return R, min_dis
+        info = {
+            'ExtR': ExtR,
+            'DiscExtR': DiscExtR,
+            'DiscExtR_Est': R0,
+            'IntR': IntR,
+            'IntR_Est': Q0,
+        }
+
+        return info
 
     def planner_trans_fn(self, s, g):
         n, m = s.shape[0], g.shape[0]
@@ -173,8 +198,11 @@ class UVFAWithRewardAgent:
 
         return True
 
-    def plan_episode(self):
+    def plan_episode(self, show_plan=False):
         s, done = self.env.reset(), False
+
+        if show_plan:
+            self.planner.show_plan(s, self.env)
 
         ExtR = 0
         gamma_power = 1.0
@@ -183,6 +211,8 @@ class UVFAWithRewardAgent:
         while not done:
             step += 1
             # if step >= 10: break
+            # if show_plan:
+                # self.env.render()
 
             a = self.planner.plan(s)
 

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import time
 
 class Planner:
     def __init__(self, trans_fn, gamma, device='cpu'):
@@ -50,7 +51,7 @@ class Planner:
         print(f'{it} Iterations, Vmean = {float(self.V.mean()):.5f}')
 
 
-    def plan(self, s):
+    def plan(self, s, get_state=False):
         s = torch.from_numpy(s).float().to(self.device).unsqueeze(0)
         G, R, Pi = self.trans_fn(s, self.waypoints)
         Vs = (R + G * self.V.unsqueeze(0)).squeeze(0)
@@ -59,7 +60,26 @@ class Planner:
         a = Pi[0, g_idx]
         a = int(a)
         # print('Act', a, 'PredRew', float(Vs[g_idx]))
-        return a
+        if get_state:
+            return self.waypoints[g_idx].cpu().numpy()
+        else:
+            return a
+
+    def show_plan(self, s, env, step=20):
+
+        s_list = [s]
+        for i in range(step):
+            s = self.plan(s, get_state=True)
+            s_list.append(s)
+
+        s_list = np.array(s_list)
+        # print(s_list)
+
+        for st in s_list:
+            env.env.state = st
+            env.render()
+            time.sleep(0.05)
+
 
 
 

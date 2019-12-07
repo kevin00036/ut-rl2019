@@ -5,6 +5,7 @@ import torch
 from uvfa import UVFAgent
 from rl import StandardRLAgent
 from uvfa_r import UVFAWithRewardAgent
+from stats import Stats
 
 device = torch.device('cuda')
 # device = torch.device('cpu')
@@ -35,18 +36,20 @@ def main():
         if ep % 10 == 0:
             print('==Test==')
             tep = 10
-            rs = 0.
+            stats = Stats()
             for i in range(tep):
-                r, m = agent.test_episode()
-                rs += r / tep
-            print(f'Test R: {rs:.2f}')
+                info = agent.test_episode()
+                stats.update(info)
+            print(stats)
 
         if ep % 20 == 0 and isinstance(agent, UVFAWithRewardAgent):
             if agent.update_planner():
                 tep = 10
                 rs = 0.
                 for i in range(tep):
-                    r = agent.plan_episode()
+                    show_plan = (i == 0)
+                    show_plan = False
+                    r = agent.plan_episode(show_plan=show_plan)
                     rs += r / tep
                 print(f'Plan R: {rs:.2f}')
 
