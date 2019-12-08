@@ -48,6 +48,15 @@ class DQNAlgo:
             amax = np.random.randint(self.num_act)
         return int(amax)
         
+    def get_value(self, s, g):
+        with torch.no_grad():
+            s = torch.from_numpy(s).float().to(self.device)
+            g = torch.from_numpy(g).float().to(self.device)
+            amax = self.net(s, g).argmax(dim=0)
+            q = self.net_target(s, g).gather(-1, amax.unsqueeze(-1)).squeeze(-1)
+
+        return float(q)
+        
 
     def update_batch(self, batch):
         self.update_count += 1

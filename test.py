@@ -22,10 +22,10 @@ def main():
     # env = gym.make('Ant-v3')
 
     # agent = UVFAgent(env, device=device)
-    # agent = StandardRLAgent(env, device=device)
-    agent = UVFAWithRewardAgent(env, device=device)
+    agent = StandardRLAgent(env, device=device)
+    # agent = UVFAWithRewardAgent(env, device=device)
 
-    logger = StatLogger(run_name='test', aggregate_steps=2000)
+    logger = StatLogger(run_name='rl', aggregate_steps=2000)
 
     print(env.observation_space, env.action_space)
 

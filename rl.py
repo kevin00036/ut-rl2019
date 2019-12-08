@@ -20,6 +20,7 @@ class StandardRLAgent:
         self.obs_dim = env.observation_space.shape[0]
 
         gamma = 0.99
+        self.gamma = gamma
 
         if self.is_discrete_action:
             self.num_act = env.action_space.n
@@ -69,12 +70,17 @@ class StandardRLAgent:
         print(f'Epilen: {epilen}\tR: {R:.2f}')
         print(stats)
 
+        return epilen
+
 
     def test_episode(self):
         s, done = self.env.reset(), False
         zero = np.zeros_like(s)
 
-        R = 0
+        R = 0.
+        R0 = 0.
+        DiscR = 0.
+        gamma_power = 1.
 
         cnt = 0
         while not done:
@@ -86,8 +92,21 @@ class StandardRLAgent:
             else:
                 a = self.algo.get_action(s, zero, sigma=0.)
             sp, r, done, _ = self.env.step(a)
+
+            if cnt == 1:
+                R0 = self.algo.get_value(s, zero)
+
             R += r
+            DiscR += r * gamma_power
+
+            gamma_power *= self.gamma
             s = sp
 
-        return R, 0.
+        info = {
+            'ExtR': R,
+            'DiscExtR': DiscR,
+            'DiscExtR_Est': R0,
+        }
+
+        return info
 

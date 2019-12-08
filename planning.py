@@ -36,6 +36,7 @@ class Planner:
         thres = 1e-5
 
         it = 0
+        plan_steps = 20
         with torch.no_grad():
             while True:
                 it += 1
@@ -51,7 +52,7 @@ class Planner:
                 diff = (newV - self.V).abs().max()
                 self.V = newV
 
-                if diff < thres or it >= 1000:
+                if diff < thres or it >= plan_steps:
                     break
                 
                 if it % 200 == 0:
