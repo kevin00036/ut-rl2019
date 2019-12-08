@@ -121,6 +121,8 @@ class UVFAWithRewardAgent:
         print(f'Epilen: {epilen}\tExtR: {extR:.2f}\tIntR: {intR:.2f}')
         print(stats)
 
+        return epilen
+
 
     def test_episode(self):
         s, done = self.env.reset(), False
@@ -176,13 +178,13 @@ class UVFAWithRewardAgent:
 
         return info
 
-    def planner_trans_fn(self, s, g):
+    def planner_trans_fn(self, s, g, *args, **kwargs):
         n, m = s.shape[0], g.shape[0]
         s = s.unsqueeze(1).expand(-1, m, -1)
         g = g.unsqueeze(0).expand(n, -1, -1)
 
         with torch.no_grad():
-            G, R, Pi = self.algo.get_values(s, g)
+            G, R, Pi = self.algo.get_values(s, g, *args, **kwargs)
         return G, R, Pi
 
     def update_planner(self):
@@ -204,7 +206,9 @@ class UVFAWithRewardAgent:
         if show_plan:
             self.planner.show_plan(s, self.env)
 
-        ExtR = 0
+        ExtR = 0.
+        DiscExtR = 0.
+        V0 = 0.
         gamma_power = 1.0
 
         step = 0
@@ -214,14 +218,23 @@ class UVFAWithRewardAgent:
             # if show_plan:
                 # self.env.render()
 
-            a = self.planner.plan(s)
+            a, v = self.planner.plan(s)
+            if step == 1:
+                V0 = v
 
             sp, extr, done, info = self.env.step(a)
             ExtR += extr
-
+            DiscExtR += extr * gamma_power
+            
+            gamma_power *= self.gamma
             s = sp
 
-        return ExtR
+        info = {
+            'Plan_ExtR': ExtR,
+            'Plan_DiscExtR': DiscExtR,
+            'Plan_DiscExtR_Est': V0,
+        }
+        return info
 
 
 

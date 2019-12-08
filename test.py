@@ -6,6 +6,7 @@ from uvfa import UVFAgent
 from rl import StandardRLAgent
 from uvfa_r import UVFAWithRewardAgent
 from stats import Stats
+from stat_logger import StatLogger
 
 device = torch.device('cuda')
 # device = torch.device('cpu')
@@ -24,14 +25,19 @@ def main():
     # agent = StandardRLAgent(env, device=device)
     agent = UVFAWithRewardAgent(env, device=device)
 
+    logger = StatLogger(run_name='test', aggregate_steps=2000)
+
     print(env.observation_space, env.action_space)
 
     num_episode = 20000
     # num_episode = 0
 
+    total_steps = 0
+
     for ep in range(num_episode):
-        print(ep)
-        agent.run_episode()
+        print('Episode', ep)
+        steps = agent.run_episode()
+        total_steps += steps
 
         if ep % 10 == 0:
             print('==Test==')
@@ -41,17 +47,21 @@ def main():
                 info = agent.test_episode()
                 stats.update(info)
             print(stats)
+        
+            logger.add_data(total_steps, stats)
 
         if ep % 20 == 0 and isinstance(agent, UVFAWithRewardAgent):
             if agent.update_planner():
                 tep = 10
-                rs = 0.
+                stats = Stats()
                 for i in range(tep):
                     show_plan = (i == 0)
                     show_plan = False
-                    r = agent.plan_episode(show_plan=show_plan)
-                    rs += r / tep
-                print(f'Plan R: {rs:.2f}')
+                    info = agent.plan_episode(show_plan=show_plan)
+                    stats.update(info)
+                print(stats)
+
+                logger.add_data(total_steps, stats)
 
 
         # print(s)

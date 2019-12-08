@@ -66,10 +66,13 @@ class DQNWithRewardAlgo:
             amax = np.random.randint(self.num_act)
         return int(amax)
 
-    def get_values(self, s, g):
-        q = self.qnet(s, g)
+    def get_values(self, s, g, target=False):
+        qnet = self.qnet_target if target else self.qnet
+        rnet = self.rnet_target if target else self.rnet
+
+        q = qnet(s, g)
         ival, amax = q.max(dim=-1)
-        r = self.rnet(s, g)
+        r = rnet(s, g)
         rval = r.gather(-1, amax.unsqueeze(-1)).squeeze(-1)
 
         return ival, rval, amax

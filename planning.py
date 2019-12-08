@@ -21,6 +21,12 @@ class Planner:
     def update_trans(self):
         self.G, self.R, self.Pi = self.trans_fn(self.waypoints, self.waypoints)
         self.G = self.G.clamp(0., self.gamma)
+        self.Gt, self.Rt, self.Pit = self.trans_fn(self.waypoints, self.waypoints, target=True)
+        self.Gt = self.Gt.clamp(0., self.gamma)
+
+        # mask = (self.G >= 0.8).float()
+        # self.G = self.G * mask
+        # self.R = self.R + (1-mask) * (-1E10)
         
         print(f'Avg R: {float(self.R.mean()):.5f}, Avg G: {float(self.G.mean()):.5f}')
 
@@ -34,14 +40,18 @@ class Planner:
             while True:
                 it += 1
 
+                Vnt = self.Rt + self.Gt * self.V.unsqueeze(0)
                 Vn = self.R + self.G * self.V.unsqueeze(0)
-                newV = Vn.max(dim=1)[0]
+                maxsp = Vn.max(dim=1)[1]
+                Vm = torch.min(self.R, self.Rt) + torch.min(self.G, self.Gt) * self.V.unsqueeze(0)
+                # newV = torch.min(Vnt, Vn).gather(1, maxsp.unsqueeze(1)).squeeze(1)
+                newV = Vm.gather(1, maxsp.unsqueeze(1)).squeeze(1)
                 # newV = Vn.topk(k=10, dim=1)[0].min(dim=1)[0]
 
                 diff = (newV - self.V).abs().max()
                 self.V = newV
 
-                if diff < thres:
+                if diff < thres or it >= 1000:
                     break
                 
                 if it % 200 == 0:
@@ -54,16 +64,19 @@ class Planner:
     def plan(self, s, get_state=False):
         s = torch.from_numpy(s).float().to(self.device).unsqueeze(0)
         G, R, Pi = self.trans_fn(s, self.waypoints)
+        Gt, Rt, Pit = self.trans_fn(s, self.waypoints, target=True)
         Vs = (R + G * self.V.unsqueeze(0)).squeeze(0)
+        Vm = (torch.min(R, Rt) + torch.min(G, Gt) * self.V.unsqueeze(0)).squeeze(0)
         
         g_idx = Vs.argmax()
         a = Pi[0, g_idx]
         a = int(a)
+        v = float(Vm[g_idx])
         # print('Act', a, 'PredRew', float(Vs[g_idx]))
         if get_state:
             return self.waypoints[g_idx].cpu().numpy()
         else:
-            return a
+            return a, v
 
     def show_plan(self, s, env, step=20):
 
