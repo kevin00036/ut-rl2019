@@ -18,7 +18,7 @@ def main():
     total_steps = obj['info']['steps']
 
     varlist = ['IntR', 'IntR_Est']
-    varlist = ['DiscExtR', 'DiscExtR_Est']
+    # varlist = ['DiscExtR', 'DiscExtR_Est']
     varlist = ['Plan_ExtR', 'Plan_DiscExtR', 'Plan_DiscExtR_Est']
 
     for var in varlist:
