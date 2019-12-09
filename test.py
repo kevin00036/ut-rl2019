@@ -21,21 +21,27 @@ def main():
     # env = gym.make('InvertedPendulum-v2')
     # env = gym.make('Ant-v3')
 
-    # agent = UVFAgent(env, device=device)
-    agent = StandardRLAgent(env, device=device)
-    # agent = UVFAWithRewardAgent(env, device=device)
+    agent, agent_type = StandardRLAgent(env, device=device), 'rl'
+    # agent, agent_type = UVFAWithRewardAgent(env, device=device), 'uvfa_r'
 
-    logger = StatLogger(run_name='rl', aggregate_steps=2000)
+    run_name = env.spec.id + '_' + agent_type
+
+
+    logger = StatLogger(run_name=run_name, aggregate_steps=2000)
 
     print(env.observation_space, env.action_space)
 
-    num_episode = 20000
+    num_episode = 200000
     # num_episode = 0
+
+    max_steps = 200000
 
     total_steps = 0
 
     for ep in range(num_episode):
-        print('Episode', ep)
+        if total_steps > max_steps:
+            break
+        print('Episode', ep, 'Total Step', total_steps)
         steps = agent.run_episode()
         total_steps += steps
 
@@ -69,16 +75,16 @@ def main():
 
         # print(env.s)
 
-    returns = []
-    min_dis = []
-    for ep in range(20):
-        # print(ep)
-        r, m = agent.test_episode()
-        returns.append(r)
-        min_dis.append(m)
+    # returns = []
+    # min_dis = []
+    # for ep in range(20):
+        # # print(ep)
+        # r, m = agent.test_episode()
+        # returns.append(r)
+        # min_dis.append(m)
 
-    print('Avg return =', np.mean(returns))
-    print('Min dis =', np.mean(min_dis))
+    # print('Avg return =', np.mean(returns))
+    # print('Min dis =', np.mean(min_dis))
 
 
 if __name__ == '__main__':

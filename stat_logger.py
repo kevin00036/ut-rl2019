@@ -7,7 +7,7 @@ from stats import Stats, ValueStats
 
 class StatLogger:
     def __init__(self, log_path='logs', run_name='test', aggregate_steps=1000):
-        timestamp = str(int(time.time())) + '.json'
+        timestamp = str(int(time.time())) + f'_{np.random.randint(100000):05d}.json'
 
         self.path = os.path.join(log_path, run_name, timestamp)
         os.makedirs(os.path.join(log_path, run_name), exist_ok=True)
