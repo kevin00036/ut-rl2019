@@ -27,7 +27,7 @@ class ValueStats:
         if self.cnt <= 1:
             self.std = 0.0
         else:
-            self.std = ((self.sumsq - self.tot * self.tot / self.cnt) / (self.cnt - 1)) ** 0.5
+            self.std = max(0., (self.sumsq - self.tot * self.tot / self.cnt) / (self.cnt - 1)) ** 0.5
 
     def get_value(self):
         return self.avg
