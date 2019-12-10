@@ -1,7 +1,8 @@
-Final Project for UT Reinforcement Learning course (Fall 2019)
+# Improving long-horizon decision making with hierarchical goal-conditioned planning 
+
+## Final Project for UT Reinforcement Learning course (Fall 2019)  
 Kai-Chi Huang, Wei-Jen Ko
 
-Improving long-horizon decision making with hierarchical goal-conditioned planning
 
 --------------
 
