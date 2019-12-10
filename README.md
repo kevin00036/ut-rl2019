@@ -21,14 +21,14 @@ To run codes:
 Simply run 
 > python3 test.py
 
-To change environments, change (or uncomment) the environment "env" on Line 17 in test.py. Note that we currently support discrete-action environments currently.
+To change environments, change (or uncomment) the environment `env` on Line 17 in test.py. Note that we currently support discrete-action environments currently.
 
-To switch the TD3 optimization (mitigating maximization bias), toggle the "use_td3" variable on Line 24.
+To switch the TD3 optimization (mitigating maximization bias), toggle the `use_td3` variable on Line 24.
 
-To switch between Goal-conditioned RL and standard RL, uncomment the corresponding agent in Line 27-28.
+To switch between Goal-conditioned RL and standard RL, uncomment the corresponding agent on Line 27-28.
 
-To change the maximum environment steps, change the "max_steps" variable in Line 40.
+To change the maximum environment steps, change the `max_steps` variable on Line 40.
 
 
-The execution log will be save at <project base>/logs/<algorithm_name>/xxxxxxx_xxx.json
+The execution log will be save at `<project base>/logs/<algorithm_name>/xxxxxxxxxx_yyyyy.json`
 
