@@ -4,6 +4,9 @@
 Kai-Chi Huang, Wei-Jen Ko
 
 
+### Youtube video: <https://youtu.be/c_G16ep3f-I>
+### Report PDF: <https://github.com/kevin00036/ut-rl2019/raw/master/RL_Final_Project.pdf>
+
 --------------
 
 Dependencies:
