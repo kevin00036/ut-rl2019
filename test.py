@@ -21,8 +21,11 @@ def main():
     # env = gym.make('InvertedPendulum-v2')
     # env = gym.make('Ant-v3')
 
-    agent, agent_type = StandardRLAgent(env, device=device), 'rl'
-    # agent, agent_type = UVFAWithRewardAgent(env, device=device), 'uvfa_r'
+    use_td3 = True
+    td3_str = '' if use_td3 else '_notd3'
+
+    # agent, agent_type = StandardRLAgent(env, device=device), 'rl'
+    agent, agent_type = UVFAWithRewardAgent(env, use_td3=use_td3, device=device), 'uvfa_r' + td3_str
 
     run_name = env.spec.id + '_' + agent_type
 
@@ -34,7 +37,7 @@ def main():
     num_episode = 200000
     # num_episode = 0
 
-    max_steps = 200000
+    max_steps = 100000
 
     total_steps = 0
 

@@ -14,7 +14,7 @@ from ddpg import DDPGAlgo
 from planning import Planner
 
 class UVFAWithRewardAgent:
-    def __init__(self, env, device):
+    def __init__(self, env, device='cpu', use_td3=True):
         self.env = env
         self.device = device
         self.is_discrete_action = isinstance(env.action_space, gym.spaces.discrete.Discrete)
@@ -25,14 +25,14 @@ class UVFAWithRewardAgent:
 
         if self.is_discrete_action:
             self.num_act = env.action_space.n
-            self.algo = DQNWithRewardAlgo(self.obs_dim, self.num_act, gamma, device=device)
+            self.algo = DQNWithRewardAlgo(self.obs_dim, self.num_act, gamma, use_td3=use_td3, device=device)
         else:
             self.act_dim = env.action_space.shape[0]
-            self.algo = DDPGAlgo(self.obs_dim, self.act_dim, gamma, device=device)
+            self.algo = DDPGAlgo(self.obs_dim, self.act_dim, gamma, use_td3=use_td3, device=device)
 
         self.replay_buffer = ReplayBuffer()
 
-        self.planner = Planner(trans_fn=self.planner_trans_fn, gamma=gamma, device=device)
+        self.planner = Planner(trans_fn=self.planner_trans_fn, use_td3=use_td3, gamma=gamma, device=device)
 
         self.estimate_std()
 

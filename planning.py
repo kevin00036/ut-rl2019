@@ -3,10 +3,12 @@ import torch
 import time
 
 class Planner:
-    def __init__(self, trans_fn, gamma, device='cpu'):
+    def __init__(self, trans_fn, gamma, use_td3=True, device='cpu'):
         self.device = device
         self.trans_fn = trans_fn # (s, s') -> (G(s, s'), R(s, s'), Pi(s, s'))
         self.gamma = gamma
+        self.use_td3 = use_td3
+
         self.waypoints = None
         self.n = None
         self.R = None
@@ -44,10 +46,11 @@ class Planner:
                 Vnt = self.Rt + self.Gt * self.V.unsqueeze(0)
                 Vn = self.R + self.G * self.V.unsqueeze(0)
                 maxsp = Vn.max(dim=1)[1]
-                Vm = torch.min(self.R, self.Rt) + torch.min(self.G, self.Gt) * self.V.unsqueeze(0)
-                # newV = torch.min(Vnt, Vn).gather(1, maxsp.unsqueeze(1)).squeeze(1)
+                if self.use_td3:
+                    Vm = torch.min(self.R, self.Rt) + torch.min(self.G, self.Gt) * self.V.unsqueeze(0)
+                else:
+                    Vm = self.R + self.G * self.V.unsqueeze(0)
                 newV = Vm.gather(1, maxsp.unsqueeze(1)).squeeze(1)
-                # newV = Vn.topk(k=10, dim=1)[0].min(dim=1)[0]
 
                 diff = (newV - self.V).abs().max()
                 self.V = newV
@@ -67,7 +70,10 @@ class Planner:
         G, R, Pi = self.trans_fn(s, self.waypoints)
         Gt, Rt, Pit = self.trans_fn(s, self.waypoints, target=True)
         Vs = (R + G * self.V.unsqueeze(0)).squeeze(0)
-        Vm = (torch.min(R, Rt) + torch.min(G, Gt) * self.V.unsqueeze(0)).squeeze(0)
+        if self.use_td3:
+            Vm = (torch.min(R, Rt) + torch.min(G, Gt) * self.V.unsqueeze(0)).squeeze(0)
+        else:
+            Vm = (R + G * self.V.unsqueeze(0)).squeeze(0)
         
         g_idx = Vs.argmax()
         a = Pi[0, g_idx]

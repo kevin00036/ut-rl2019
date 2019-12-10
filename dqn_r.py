@@ -36,11 +36,12 @@ class ValueNet(nn.Module):
         return x
 
 class DQNWithRewardAlgo:
-    def __init__(self, obs_dim, num_act, gamma, lr=1e-3, device='cpu'):
+    def __init__(self, obs_dim, num_act, gamma, use_td3=True, lr=1e-3, device='cpu'):
         self.obs_dim = obs_dim
         self.num_act = num_act
         self.gamma = gamma
         self.device = device
+        self.use_td3 = use_td3
 
         self.target_update_rate = 0.005
 
@@ -92,8 +93,13 @@ class DQNWithRewardAlgo:
 
         # Update Q networks
 
-        max_act = self.qnet(sp, g).detach().max(dim=-1)[1]
-        Qnext = (1 - done) * torch.min(self.qnet_target(sp, g), self.qnet(sp, g)).detach().gather(1, max_act.unsqueeze(1)).squeeze(1)
+        if self.use_td3:
+            max_act = self.qnet(sp, g).detach().max(dim=-1)[1]
+            Qnext = (1 - done) * torch.min(self.qnet_target(sp, g), self.qnet(sp, g)).detach().gather(1, max_act.unsqueeze(1)).squeeze(1)
+        else:
+            max_act = self.qnet_target(sp, g).detach().max(dim=-1)[1]
+            Qnext = (1 - done) * self.qnet_target(sp, g).detach().gather(1, max_act.unsqueeze(1)).squeeze(1)
+
         Qtarget = r + self.gamma * Qnext
         Qa = self.qnet(s, g).gather(1, a.unsqueeze(1)).squeeze(1)
 
